@@ -115,8 +115,10 @@ void questThree() {
     FilterStr(tokens, requiredChar1, leng); //1st filter
 
     printf("\n");
+    char devices[10];
+    char endpoints[10];
 
-    getDevice(tokens);
+    getDevice(tokens, devices, endpoints);
 }
 
 // void questFour() {
@@ -197,43 +199,46 @@ void FilterStr(char *tokens[], char subStr[], int leng) {
     }
 }
 
-void getDevice(char *tokens[]) {
+void getDevice(char *tokens[], char arr1[], char arr2[]) {
     const char *pattern = "zwave-";
-    char *deviceName[10]; // Assume there are only 10 different devices
-    char *endpoints[10];  // Assume there are only 10 different endpoints
-
-    int tempArr1 = 0; 
-    int tempArr2 = 0;
     int i = 0;
 
     while (tokens[i] != NULL) {
         const char *foundStr = strstr(tokens[i], pattern);
-
+        
         if (foundStr != NULL) {
             char extractedStr[5];  // Assuming 'dc53' has 4 characters
             char endpoint[3];      // For 2 characters after extractedStr and null terminator
-
+            
             // Copy characters after 'zwave-' into extractedStr
             strncpy(extractedStr, foundStr + strlen(pattern), 4);
             extractedStr[4] = '\0';  // Null terminate the extracted string
-
+            
             // Copy the next 2 characters after the extracted string into endpoint
-            strncpy(endpoint, foundStr + strlen(pattern) + 5, 2);
+            strncpy(endpoint, foundStr + strlen(pattern) + 6, 2); // Changed from 5 to 4 for 4-character extracted string
             endpoint[2] = '\0';  // Null terminate the endpoint string
 
+
+            strcpy(&arr1[i * 5], extractedStr);
+            // printf("%s\n", &arr1[i * 5]);  // Print the extracted string
+
+            // // Assign endpoint to arr2 at index i
+            strcpy(&arr2[i * 3], endpoint);
+            // printf("%s\n", &arr2[i * 3]);
+            
             // Check if the last extractedStr is different, then update tempArr1
-            if (tempArr1 == 0 || strcmp(deviceName[tempArr1 - 1], extractedStr) != 0) {
-                deviceName[tempArr1] = strdup(extractedStr);
-                tempArr1++;
-            }
-
-            // Check if the last endpoint is different, then update tempArr2
-            if (tempArr2 == 0 || strcmp(endpoints[tempArr2 - 1], endpoint) != 0) {
-                endpoints[tempArr2] = strdup(endpoint);
-                tempArr2++;
-            }
-
-            printf("Device: %s, Endpoint: %s\n", deviceName[tempArr1 - 1], endpoints[tempArr2 - 1]);
+            // if (tempArr1 == 0 || strcmp(deviceName[tempArr1 - 1], extractedStr) != 0) {
+            //     deviceName[tempArr1] = strdup(extractedStr);
+            //     printf("Device: %s, ", deviceName[tempArr1]); // Print device for testing
+            //     tempArr1++;
+            // }
+            
+            // // Check if the last endpoint is different, then update tempArr2
+            // if (tempArr2 == 0 || strcmp(endpoints[tempArr2 - 1], endpoint) != 0) {
+            //     endpoints[tempArr2] = strdup(endpoint);
+            //     printf("Endpoint: %s\n", endpoints[tempArr2]); // Print endpoint for testing
+            //     tempArr2++;
+            // }
         } else {
             printf("Pattern not found in the input string.\n");
         }
@@ -241,11 +246,7 @@ void getDevice(char *tokens[]) {
         i++;
     }
 
-    // Free allocated memory
-    for (i = 0; i < tempArr1; i++) {
-        free(deviceName[i]);
-    }
-    for (i = 0; i < tempArr2; i++) {
-        free(endpoints[i]);
-    }
+
+
 }
+
