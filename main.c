@@ -184,9 +184,9 @@ void FilterStr(char *tokens[], char subStr[], int leng) {
     }
 
     //Print or process the filtered tokens
-    for (int j = 0; j < tempIndex; j++) {
-        printf("Filtered Token %d: %s\n", j, tempArr[j]);
-    }
+    // for (int j = 0; j < tempIndex; j++) {
+    //     printf("Filtered Token %d: %s\n", j, tempArr[j]);
+    // }
 
     for (int i = 0; i < tempIndex; i++) {
         strcpy(tokens[i], tempArr[i]);
@@ -197,47 +197,43 @@ void FilterStr(char *tokens[], char subStr[], int leng) {
     }
 }
 
-void getDevice(char *tokens[]) { //Sample
-    // const char *inputString = "\"data\":[\"zwave-dc53:4-1\"]";
+void getDevice(char *tokens[]) {
     const char *pattern = "zwave-";
-    char *tempArr[MAXLENGTH];
-    int i = 0;
-
-    char *deviceName[10]; //Assume there are only 10 different devices
-    char *endpoint[10]; //Assume there are only 10 different endpoints
+    char *deviceName[10]; // Assume there are only 10 different devices
+    char *endpoints[10];  // Assume there are only 10 different endpoints
 
     int tempArr1 = 0; 
     int tempArr2 = 0;
+    int i = 0;
 
     while (tokens[i] != NULL) {
         const char *foundStr = strstr(tokens[i], pattern);
 
         if (foundStr != NULL) {
-            char extractedStr[5];  // Assuming 'ffa2' has 4 characters
-            char endpoint[4];      // For 3 characters after extractedStr and null terminator
+            char extractedStr[5];  // Assuming 'dc53' has 4 characters
+            char endpoint[3];      // For 2 characters after extractedStr and null terminator
 
             // Copy characters after 'zwave-' into extractedStr
             strncpy(extractedStr, foundStr + strlen(pattern), 4);
             extractedStr[4] = '\0';  // Null terminate the extracted string
 
-            // Copy the next 3 characters after the extracted string
-            strncpy(endpoint, foundStr + strlen(pattern) + 6, 2);
-            endpoint[3] = '\0';  // Null terminate the endpoint string
+            // Copy the next 2 characters after the extracted string into endpoint
+            strncpy(endpoint, foundStr + strlen(pattern) + 5, 2);
+            endpoint[2] = '\0';  // Null terminate the endpoint string
 
             // Check if the last extractedStr is different, then update tempArr1
             if (tempArr1 == 0 || strcmp(deviceName[tempArr1 - 1], extractedStr) != 0) {
-                deviceName[tempArr1] = extractedStr;
+                deviceName[tempArr1] = strdup(extractedStr);
                 tempArr1++;
             }
 
             // Check if the last endpoint is different, then update tempArr2
-            if (tempArr2 == 0 || strcmp(endpoint[tempArr2 - 1], endpoint) != 0) {
-                endpoint[tempArr2] = endpoint;
+            if (tempArr2 == 0 || strcmp(endpoints[tempArr2 - 1], endpoint) != 0) {
+                endpoints[tempArr2] = strdup(endpoint);
                 tempArr2++;
             }
 
-            printf("Extracted substring: %s\n", extractedStr);
-            printf("Characters after extracted string: %s\n", endpoint);
+            printf("Device: %s, Endpoint: %s\n", deviceName[tempArr1 - 1], endpoints[tempArr2 - 1]);
         } else {
             printf("Pattern not found in the input string.\n");
         }
@@ -245,4 +241,11 @@ void getDevice(char *tokens[]) { //Sample
         i++;
     }
 
+    // Free allocated memory
+    for (i = 0; i < tempArr1; i++) {
+        free(deviceName[i]);
+    }
+    for (i = 0; i < tempArr2; i++) {
+        free(endpoints[i]);
+    }
 }
