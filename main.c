@@ -30,29 +30,29 @@ int main() {
         printf("1/ Question 1: Count the number of messages containing specific keywords.\n");
         printf("2/ Question 2: Find and store strings that match the substring.\n");
         printf("3/ Question 3: Calculate the number of switches that exchange information with the central controller during Log time.\n");
-        printf("4/ Question 4: ... \n");
+        printf("4/ Question 4: Count the number of error messages. \n");
         printf("5/ Exit \n");
         printf("Enter your choice here: ");
         scanf("%d", &choice);
 
         switch (choice) {
             case 1:
-                questOne(); // Question 1: Count the number of messages containing specific keywords
+                questOne();
                 waitForUser();
 
                 break;
             case 2:
-                questTwo(); // Question 2: Find and store strings that match the substring
+                questTwo();
                 waitForUser();
 
                 break;
             case 3:
-                questThree(); // Question 3: Find devices and endpoints
+                questThree();
                 waitForUser();
 
                 break;
             case 4:
-                //questFour();
+                questFour();
                 waitForUser();
 
                 break;
@@ -115,15 +115,22 @@ void questThree() {
     FilterStr(tokens, requiredChar1, leng); //1st filter
 
     printf("\n");
-    char devices[10];
-    char endpoints[10];
 
-    getDevice(tokens, devices, endpoints);
+    int i = 0;
+    while (tokens[i] != NULL) {
+        i++;
+    }
+
+    getDevice(tokens, i);
 }
 
-// void questFour() {
+void questFour() {
+    char *tokens[MAXLENGTH];
+    int leng = tokenizeStr(fileStr, tokens);
 
-// }
+    int errorMess = countErrorMessages(fileStr, tokens);
+    printf(errorMess);
+}
 
 void waitForUser() {
     printf("Press Enter to continue...");
@@ -199,54 +206,72 @@ void FilterStr(char *tokens[], char subStr[], int leng) {
     }
 }
 
-void getDevice(char *tokens[], char arr1[], char arr2[]) {
+void getDevice(char *tokens[], int size) {
     const char *pattern = "zwave-";
-    int i = 0;
+    char devices[10][5];  // Assuming there are only 10 unique devices with 4 characters each
+    char endpoints[10][3]; // Assuming there are only 10 unique endpoints with 2 characters each
+    int occurrences[10] = {0}; // To store the occurrences of each device
+    int deviceIndex = 0;
 
-    while (tokens[i] != NULL) {
+    for (int i = 0; i < size; i++) {
         const char *foundStr = strstr(tokens[i], pattern);
-        
         if (foundStr != NULL) {
-            char extractedStr[5];  // Assuming 'dc53' has 4 characters
-            char endpoint[3];      // For 2 characters after extractedStr and null terminator
+            char extractedStr[5];
+            char endpoint[3];
             
-            // Copy characters after 'zwave-' into extractedStr
             strncpy(extractedStr, foundStr + strlen(pattern), 4);
-            extractedStr[4] = '\0';  // Null terminate the extracted string
+            extractedStr[4] = '\0';
             
-            // Copy the next 2 characters after the extracted string into endpoint
-            strncpy(endpoint, foundStr + strlen(pattern) + 6, 2); // Changed from 5 to 4 for 4-character extracted string
-            endpoint[2] = '\0';  // Null terminate the endpoint string
+            strncpy(endpoint, foundStr + strlen(pattern) + 6, 2);
+            endpoint[2] = '\0';
 
+            // Check if the device is already in the devices array
+            int existingDeviceIndex = -1;
+            for (int j = 0; j < deviceIndex; j++) {
+                if (strcmp(devices[j], extractedStr) == 0) {
+                    existingDeviceIndex = j;
+                    break;
+                }
+            }
 
-            strcpy(&arr1[i * 5], extractedStr);
-            // printf("%s\n", &arr1[i * 5]);  // Print the extracted string
-
-            // // Assign endpoint to arr2 at index i
-            strcpy(&arr2[i * 3], endpoint);
-            // printf("%s\n", &arr2[i * 3]);
-            
-            // Check if the last extractedStr is different, then update tempArr1
-            // if (tempArr1 == 0 || strcmp(deviceName[tempArr1 - 1], extractedStr) != 0) {
-            //     deviceName[tempArr1] = strdup(extractedStr);
-            //     printf("Device: %s, ", deviceName[tempArr1]); // Print device for testing
-            //     tempArr1++;
-            // }
-            
-            // // Check if the last endpoint is different, then update tempArr2
-            // if (tempArr2 == 0 || strcmp(endpoints[tempArr2 - 1], endpoint) != 0) {
-            //     endpoints[tempArr2] = strdup(endpoint);
-            //     printf("Endpoint: %s\n", endpoints[tempArr2]); // Print endpoint for testing
-            //     tempArr2++;
-            // }
+            if (existingDeviceIndex == -1) {
+                strcpy(devices[deviceIndex], extractedStr);
+                strcpy(endpoints[deviceIndex], endpoint);
+                occurrences[deviceIndex]++;
+                deviceIndex++;
+            } else {
+                occurrences[existingDeviceIndex]++;
+            }
         } else {
-            printf("Pattern not found in the input string.\n");
+            printf("Pattern not found in input token: %s\n", tokens[i]);
         }
-
-        i++;
     }
 
-
-
+    // Print the occurrences of each device with its corresponding endpoint
+    for (int k = 0; k < deviceIndex; k++) {
+        printf("Device %s with endpoint %s\n", devices[k], endpoints[k]);
+    }
 }
 
+int countErrorMessages(char *fileStr, char *tokens[]) {
+    int errorCount = 0;
+    int i = 0;
+
+    // Check for reqid mismatch in consecutive messages
+    for (int j = 1; j < i; j += 2) {
+        char *reqid1 = strstr(tokens[j-1], "reqid");
+        char *reqid2 = strstr(tokens[j], "reqid");
+        
+        if (reqid1 && reqid2) {
+            char value1[10], value2[10];
+            sscanf(reqid1 + 6, "%s", value1); // Assuming reqid length won't exceed 10
+            sscanf(reqid2 + 6, "%s", value2);
+            
+            if (strcmp(value1, value2) != 0) {
+                errorCount++;
+            }
+        }
+    }
+
+    return errorCount;
+}
