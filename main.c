@@ -20,7 +20,7 @@ void questThree();
 
 int main() {
     int choice = 0;
-
+    
     // Save details into a string
     int status = fileToStr(fileStr);
 
@@ -31,7 +31,9 @@ int main() {
         printf("2/ Question 2: Find and store strings that match the substring.\n");
         printf("3/ Question 3: Calculate the number of switches that exchange information with the central controller during Log time.\n");
         printf("4/ Question 4: Count the number of error messages. \n");
-        printf("5/ Exit \n");
+        printf("5/ Question 5: Count the number of error messages. \n");
+        printf("6/ Question 6: Count the number of error messages. \n");
+        printf("7/ Exit \n");
         printf("Enter your choice here: ");
         scanf("%d", &choice);
 
@@ -56,7 +58,18 @@ int main() {
                 waitForUser();
 
                 break;
+
             case 5:
+                questFive();
+                waitForUser();
+                break;
+
+            case 6:
+                questSix();
+                waitForUser();
+                break;
+
+            case 7:
                 printf("Exiting the program...");
                 exit(0);
             default:
@@ -71,14 +84,16 @@ int main() {
     return 0;
 }
 
-void questOne() {
+void questOne() 
+{
     char requiredChar[] = "\"cmd\":\"set\"";
     int nCount = countNews(fileStr, requiredChar);
 
     printf("The number of messages containing the keyword \"%s\": %d\n", requiredChar, nCount);
 }
 
-void questTwo() {
+void questTwo() 
+{
     char *tokens[MAXLENGTH]; // Array to store tokens
     char requiredChar[] = "\"cmd\":\"set\"";
 
@@ -106,7 +121,8 @@ void questTwo() {
     }
 }
 
-void questThree() {
+void questThree() 
+{
     char *tokens[MAXLENGTH];
     char requiredChar1[] = "\"cmd\":\"set\"";
     char requiredChar2[] = "\"type\":\"switch\"";
@@ -124,12 +140,20 @@ void questThree() {
     getDevice(tokens, i);
 }
 
-void questFour() {
-    char *tokens[MAXLENGTH];
-    int leng = tokenizeStr(fileStr, tokens);
+void questFour() 
+{
+    int errorMess = countErrorMessages(FNAME);
+    printf("errorMess: %i \n", errorMess);
+}
 
-    int errorMess = countErrorMessages(fileStr, tokens);
-    printf(errorMess);
+void questFive() 
+{
+    thoiGianTreLonNhat(fileStr);
+}
+
+void questSix()
+{
+    thoiGianTreTrungBinh(fileStr);
 }
 
 void waitForUser() {
@@ -253,25 +277,135 @@ void getDevice(char *tokens[], int size) {
     }
 }
 
-int countErrorMessages(char *fileStr, char *tokens[]) {
-    int errorCount = 0;
-    int i = 0;
+void extractReqid(const char *logString, char *reqidValue) {
+    char *reqidPos = strstr(logString, "\"reqid\":");
+    if (reqidPos) {
+        sscanf(reqidPos + 9, " \"%[^\"]\"", reqidValue); // Extract reqid value between quotes
+    }
+}
 
-    // Check for reqid mismatch in consecutive messages
-    for (int j = 1; j < i; j += 2) {
-        char *reqid1 = strstr(tokens[j-1], "reqid");
-        char *reqid2 = strstr(tokens[j], "reqid");
+int countErrorMessages(const char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        perror("Unable to open file");
+        return -1;
+    }
+
+    char line1[1024];
+    char line2[1024];
+    char reqidValue1[10];
+    char reqidValue2[10];
+    int errorCount = 0;
+
+    while (fgets(line1, sizeof(line1), file) && fgets(line2, sizeof(line2), file)) {
+        extractReqid(line1, reqidValue1);
+        extractReqid(line2, reqidValue2);
         
-        if (reqid1 && reqid2) {
-            char value1[10], value2[10];
-            sscanf(reqid1 + 6, "%s", value1); // Assuming reqid length won't exceed 10
-            sscanf(reqid2 + 6, "%s", value2);
-            
-            if (strcmp(value1, value2) != 0) {
-                errorCount++;
-            }
+        if (strcmp(reqidValue1, reqidValue2) != 0) {
+            errorCount++;
+            //printf("errorCount: %i", errorCount);
         }
     }
 
+    fclose(file);
     return errorCount;
+}
+
+int tinhTime(char *pos)
+{
+	int delay = 0;
+	char hour[3], minute[3], second[7];
+    hour[2] = '\0', minute[2] = '\0', second[6] = '\0';
+    memcpy(hour, pos-2,2);
+    
+    memcpy(minute, pos+1,2);
+    
+    memcpy(second, pos+4,6);
+   // printf("%s - %s - %s \n",hour,minute,second);
+
+    // thoi gian delay
+    delay = atoi(hour)*3600000+atoi(minute)*60000+atof(second)*1000;
+    return delay;
+}
+//thoi gian tre lon nhat
+void thoiGianTreLonNhat(char *str){
+    int delay, delay2, maxDelay = 0;
+    fileToStr(str);
+    char *pos, *pos2;
+    char *token = strtok(str,"\n"); // Chia chuoi str thanh cac token duoc phan biet khi xuong dong
+    while(token != NULL){
+        pos = strstr(token, ":"); // vi tri khop dau tien cua pos
+        char *p = strstr(token, "reqid");
+        char requid1[5];
+        requid1[4] = '\0';
+        memcpy(requid1, p+9,4);
+        token = strtok(NULL, "\n");
+
+        pos2 = strstr(token, ":"); // vi tri khop dau tien cua pos2
+        char *p2 = strstr(token, "reqid");
+        char requid2[5];
+        requid2[4] = '\0';
+        memcpy(requid2, p2+9,4);
+        token = strtok(NULL, "\n");
+
+        if(strcmp(requid1, requid2) == 0){
+            // thoi gian delay1
+            delay = tinhTime(pos); 
+            // thoi gian delay2
+            delay2 = tinhTime(pos2); 
+            if((delay2 - delay) > maxDelay){
+                maxDelay = delay2 - delay;
+            }
+        }
+    }
+    printf("\nDo tre lon nhat la: %d Millisecond", maxDelay);
+
+}
+
+void thoiGianTreTrungBinh(char *str)
+{
+    long delay, delay2, Xtb = 0;
+    int count = 0;
+    fileToStr(str);
+    char *pos, *pos2;
+    char *token = strtok(str,"\n"); // Chia chuoi str thanh cac token duoc phan biet khi xuong dong
+    while(token != NULL){
+        pos = strstr(token, ":");
+        char *p = strstr(token, "reqid");
+        char requid1[5];
+        requid1[4] = '\0';
+        memcpy(requid1, p+9, 4);
+        char hour[3], minute[3], second[7];
+        hour[2] = '\0', minute[2] = '\0', second[6] = '\0';
+        token = strtok(NULL, "\n");
+
+        pos2 = strstr(token, ":");
+        char *p2 = strstr(token, "reqid");
+        char requid2[5];
+        requid2[4] = '\0';
+        memcpy(requid2, p2+9, 4);
+        char hour2[3], minute2[3], second2[7];
+        hour2[2] = '\0', minute2[2] = '\0', second2[6] = '\0';
+
+        token = strtok(NULL, "\n");
+
+        if(strcmp(requid1, requid2) == 0){
+            memcpy(hour, pos-3,2);
+            memcpy(minute, pos+1,2);
+            memcpy(second, pos+4,6);
+
+            // thoi gian delay
+            delay = atoi(hour)*3600000+atoi(minute)*60000+atof(second)*1000;
+
+            memcpy(hour2, pos2-3,2);
+            memcpy(minute2, pos2+1,2);
+            memcpy(second2, pos2+4,6);
+
+            // tinh do tre tb
+            delay2 = atoi(hour2)*3600000+atoi(minute2)*60000+atof(second2)*1000;
+            Xtb += delay2 - delay;
+                count++;
+        }
+    }
+    printf("\nDo tre trung binh la: %d Millisecond", Xtb/count);
 }
